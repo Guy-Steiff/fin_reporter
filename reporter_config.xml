@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<reporter_session>
+    <metadata>
+        <save_parsed_data_frame_to_csv>all</save_parsed_data_frame_to_csv>
+        <use_preexisting_ledger>True</use_preexisting_ledger>
+        <preexisting_ledger_path>r'.\ledger.csv'</preexisting_ledger_path>
+        <output_report_location>r'.\report'</output_report_location>
+    </metadata>
+
+    <raw_reports>
+        <etrade>[r'D:\Projects\Active\Portfolio\Reporter\parsing\etrade_unparsed.csv']</etrade>
+        <binance>[r'D:\Projects\Active\Portfolio\Reporter\parsing\part-00000-9174bd3e-00fd-4a80-936d-d76f5d158c46-c000.csv', r'D:\Projects\Active\Portfolio\Reporter\parsing\part-00000-ba8a9359-3a5a-44c4-bd3e-26ecd3ee7761-c000.csv']</binance>
+        <ibkr>[r'D:\Projects\Active\Portfolio\Reporter\parsing\U8924224_2022_2022.csv', r'D:\Projects\Active\Portfolio\Reporter\parsing\U8924224_20230102_20230511.csv']</ibkr>
+    </raw_reports>
+
+    <report>
+        <plot_graphs>True</plot_graphs>
+        <html>False</html>
+        <word>False</word>
+        <ppt>False</ppt>
+        <start_date>datetime.datetime(2020, 1, 1, 0, 0)</start_date>
+        <end_date>datetime.datetime.now()</end_date>
+    </report>
+</reporter_session>
+
+<!--        <save_parsed_data_frame_to_csv>ledger</save_parsed_data_frame_to_csv>-->
+<!--        <save_parsed_data_frame_to_csv>none</save_parsed_data_frame_to_csv>-->
