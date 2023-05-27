@@ -7,7 +7,8 @@ import os
 import time
 import numpy as np
 from common.CXmlToDict import XmlConvertor
-
+from docx import Document
+from docx.shared import Inches
 
 class Parser:
     def __init__(self,
@@ -101,8 +102,10 @@ class Parser:
         pd_trades['Realized P/L'] = pd_trades['Realized P/L'].astype(float)
 
         if b_save_parsed_data_frame_to_csv:
+            str_root_report_folder_path = fr'{self.output_report_location}\{str_timestamps}'
+            os.makedirs(str_root_report_folder_path, exist_ok=True)
             pd_trades.to_csv(
-                fr'.\{str_timestamps}\{str_platform_to_prase_from}_parsed_report_{os.path.basename(str_full_file_path_csv_to_parse)[0:-4]}.csv',
+                fr'.\{str_root_report_folder_path}\{str_platform_to_prase_from}_parsed_report_{os.path.basename(str_full_file_path_csv_to_parse)[0:-4]}.csv',
                 index=False)
         return pd_trades
 
@@ -252,7 +255,7 @@ class Analysis:
         int_len_of_symbols = len(pd_trades['Symbol'].unique())
         d_counter = 0
         # lst_pos_analysis = [pd.DataFrame()] * int_len_of_symbols  # + 1)  # +1 for the total
-        lst_pos_analysis = [pd.DataFrame()] * (int_len_of_symbols + 1)  # +1 for the total
+        lst_pos_analysis = [pd.DataFrame()] * (int_len_of_symbols)  # +1 for the total
         for str_curr_ticker_symbol in pd_trades['Symbol'].unique():
             print(f'{d_counter}: {str_curr_ticker_symbol}')
             if b_plots:
@@ -266,7 +269,7 @@ class Analysis:
                 for index, row in pd_trades[pd_trades['Symbol'] == str_curr_ticker_symbol].iterrows():
                     dict_row = dict(row)
                     datetime_unique_position_date_curr = \
-                        datetime.datetime.strptime(dict_row['Date/Time'], "%Y-%m-%d %H:%M:%S")
+                        datetime.datetime.strptime(str(dict_row['Date/Time']), "%Y-%m-%d %H:%M:%S")
 
                     if (dict_row['DataDiscriminator'] != 'Sell'):
                         str_transaction_type_buy_or_sell = 'buy'
@@ -302,14 +305,14 @@ class Analysis:
 
             dict_curr_data = {'Symbol': None,
                               'Current Price': None,
+                              'Break Even Price': None,
                               'Quantity of Shares': None,
                               'Currency': None,
-                              'Break Even Price': None,
                               'Total Monies Spent': None,
+                              'Total Value [abs]': None,
                               'Revenue [abs]': None,
                               'Revenue [percent]': None,
                               'Commission': None,
-                              'Total Value [abs]': None,
                               'Total Value [percent]': None}
             df_yf_data_curr = get_data(str_curr_ticker_symbol, datetime_start_date, datetime_end_date)
 
@@ -332,6 +335,10 @@ class Analysis:
                 else:
                     int_commulative_sum_buy_minus_sell -= dict_item['Quantity']
                     float_commulative_scalar_mult_buy_minus_sell -= dict_item['Quantity'] * dict_item['T. Price']
+
+            #closed position handling:
+            if int_commulative_sum_buy_minus_sell == 0:
+                continue
 
             # if 'INTC' == str_curr_ticker_symbol.upper():
             #     print('here')
@@ -422,28 +429,28 @@ class Analysis:
             df_aggragated_analyzed_data['Total Value [abs]'] / df_aggragated_analyzed_data[
                 'Total Value [abs]'].sum() * 100
 
-        df_aggragated_analyzed_data.loc[(int_len_of_symbols + 1), 'Symbol'] = 'Aggregation'
+        df_aggragated_analyzed_data.loc[(int_len_of_symbols), 'Symbol'] = 'Aggregation'
         df_aggragated_analyzed_data.loc[
-            (int_len_of_symbols + 1), 'Current Price'] = None  # df_aggragated_analyzed_data['Current Price'].mean()
-        df_aggragated_analyzed_data.loc[(int_len_of_symbols + 1), 'Quantity of Shares'] = df_aggragated_analyzed_data[
+            (int_len_of_symbols), 'Current Price'] = None  # df_aggragated_analyzed_data['Current Price'].mean()
+        df_aggragated_analyzed_data.loc[(int_len_of_symbols), 'Quantity of Shares'] = df_aggragated_analyzed_data[
             'Quantity of Shares'].sum()
-        df_aggragated_analyzed_data.loc[(int_len_of_symbols + 1), 'Currency'] = 'USD'
-        df_aggragated_analyzed_data.loc[(int_len_of_symbols + 1), 'Break Even Price'] = None
-        df_aggragated_analyzed_data.loc[(int_len_of_symbols + 1), 'Total Monies Spent'] = df_aggragated_analyzed_data[
+        df_aggragated_analyzed_data.loc[(int_len_of_symbols), 'Currency'] = 'USD'
+        df_aggragated_analyzed_data.loc[(int_len_of_symbols), 'Break Even Price'] = None
+        df_aggragated_analyzed_data.loc[(int_len_of_symbols), 'Total Monies Spent'] = df_aggragated_analyzed_data[
             'Total Monies Spent'].sum()
-        df_aggragated_analyzed_data.loc[(int_len_of_symbols + 1), 'Revenue [abs]'] = df_aggragated_analyzed_data[
+        df_aggragated_analyzed_data.loc[(int_len_of_symbols), 'Revenue [abs]'] = df_aggragated_analyzed_data[
             'Revenue [abs]'].sum()
-        df_aggragated_analyzed_data.loc[(int_len_of_symbols + 1), 'Commission'] = df_aggragated_analyzed_data[
+        df_aggragated_analyzed_data.loc[(int_len_of_symbols), 'Commission'] = df_aggragated_analyzed_data[
             'Commission'].sum()
-        df_aggragated_analyzed_data.loc[(int_len_of_symbols + 1), 'Total Value [abs]'] = df_aggragated_analyzed_data[
+        df_aggragated_analyzed_data.loc[(int_len_of_symbols), 'Total Value [abs]'] = df_aggragated_analyzed_data[
             'Total Value [abs]'].sum()
-        df_aggragated_analyzed_data.loc[(int_len_of_symbols + 1), 'Revenue [percent]'] =\
+        df_aggragated_analyzed_data.loc[(int_len_of_symbols), 'Revenue [percent]'] =\
             float(
                     (df_aggragated_analyzed_data[df_aggragated_analyzed_data['Symbol'] == 'Aggregation']['Total Value [abs]'] /
                      df_aggragated_analyzed_data[df_aggragated_analyzed_data['Symbol'] == 'Aggregation']['Total Monies Spent']
                      - 1) * 100
             )
-        df_aggragated_analyzed_data.loc[(int_len_of_symbols + 1), 'Total Value [percent]'] = \
+        df_aggragated_analyzed_data.loc[(int_len_of_symbols), 'Total Value [percent]'] = \
             df_aggragated_analyzed_data['Total Value [percent]'].sum()
 
         df_aggragated_analyzed_data.to_csv(os.path.join(str_report_folder, 'results.csv'), index=False)
@@ -451,30 +458,184 @@ class Analysis:
             f'### analyzer1: printing aggragated results onto: {os.path.join(os.getcwd(), str_report_folder, "results.csv")}')
         return df_aggragated_analyzed_data
 
+class Report:
+    def __init__(self,
+                 pd_ledger,
+                 df_aggragated_analyzed_data,
+                 config_xml=r'./reporter_config.xml',
+                 str_timestamps='1970_01_01_00_00_00'
+                 ):
+
+        self.config_xml = config_xml
+        self.str_timestamps = str_timestamps
+        dict_config = XmlConvertor().xml2dict(fpath=config_xml)
+        self.str_report_path = eval(dict_config['reporter_session']['metadata']['output_report_location'])
+        self.b_html_report = eval(dict_config['reporter_session']['report']['html'])
+        self.b_word_report = eval(dict_config['reporter_session']['report']['word'])
+        self.b_ppt_report = eval(dict_config['reporter_session']['report']['ppt'])
+        self.pd_ledger = pd_ledger
+        self.df_aggragated_analyzed_data = df_aggragated_analyzed_data
+
+    def start(self):
+        if self.b_html_report:
+            self.html()
+        else:
+            pass
+        if self.b_word_report:
+            self.word()
+        else:
+            pass
+        if self.b_ppt_report:
+            self.ppt()
+        else:
+            pass
+
+    def html(self):
+        str_timestamps = self.str_timestamps
+        pd_ledger = self.pd_ledger
+        df_aggragated_analyzed_data = self.df_aggragated_analyzed_data
+        str_report_path = self.str_report_path
+        str_report_folder = os.path.join(str_report_path, str_timestamps)
+        os.makedirs(str_report_folder, exist_ok=True)
+        str_html_report_relative_file_path = os.path.join(str_report_folder, 'report.html')
+        # make html:
+        fid = open(str_html_report_relative_file_path, 'w')
+        # head:
+        for html_snippet in ['<html>', '<head>', '<body>']:
+            fid.write(html_snippet + '\n')
+
+        # title:
+        fid.write('<center>\n')
+        fid.write(f'<p style="font-size:50px;"> Financial report for {str_timestamps}:<br></p>\n')
+        fid.write('</center>\n')
+
+        # table:
+        fid.write('<table border="4" class="dataframe"; align="center">\n')
+
+        # table head
+        fid.write('<thead>\n')
+        # column  titles:
+        fid.write('<tr style="text-align: left;">\n')
+        for title in df_aggragated_analyzed_data.columns:
+            fid.write(f'<th>{title}</th>\n')
+        fid.write(f'</tr>\n')
+        fid.write('</thead>\n')
+
+        # table body
+        fid.write('<tbody>\n')
+        for index, row in df_aggragated_analyzed_data.iterrows():
+            fid.write(f'<tr style="text-align: left;">\n')
+            if index%2 == 0:
+                str_td_code = 'bgcolor=\"#5F9EA0;\"'
+            else:
+                str_td_code = ''
+            for item in row:
+                if isinstance(item, float) and not (np.isnan(item)):
+                    if int(item) == float(item):
+                        fid.write(f'<td {str_td_code}>{int(item):>,}</td>\n')
+                    elif int(item) != float(item):
+                        fid.write(f'<td {str_td_code}>{item:>,.3f}</td>\n')
+                    else:
+                        pass
+                else:
+                    fid.write(f'<td {str_td_code}>{item}</td>\n')
+            fid.write(f'</tr>\n')
+
+        fid.write('</tbody>\n')
+
+        # end table
+        fid.write('</table\n')
+        for ii in range(10):
+            fid.write('<br>\n')
+        fid.write('<hr>\n')
+
+        # breakdown of positions:
+        for position in df_aggragated_analyzed_data['Symbol'].unique():
+            if 'aggregation' not in position.lower():
+                fid.write(f'<p style="font-size:30px;"> {position}</p>\n')
+                str_path_to_image = os.path.join('figures', position)
+                # figure:
+                fid.write(f'<img src={str_path_to_image}.png>\n')
+
+                # mathematical summary
+                fid.write(df_aggragated_analyzed_data[df_aggragated_analyzed_data['Symbol'] == position].to_html(index=False))
+                for ii in range(7):
+                    fid.write('<br>\n')
+
+                # table:
+                fid.write('<table border="4" class="dataframe"; align="left">\n')
+                # table head
+                fid.write('<thead>\n')
+                # column  titles:
+                fid.write('<tr style="text-align: left;">\n')
+                for title in pd_ledger.columns:
+                    fid.write(f'<th>{title}</th>\n')
+                fid.write(f'</tr>\n')
+                fid.write('</thead>\n')
+
+                # table body
+                fid.write('<tbody>\n')
+                for index, row in pd_ledger[pd_ledger['Symbol'] == position].iterrows():
+                    fid.write(f'<tr style="text-align: left;">\n')
+                    for item in row:
+                        # fid.write(f'<td>{item}</td>\n')
+                        if isinstance(item, float) and not (np.isnan(item)):
+                            if int(item) == float(item):
+                                # fid.write(f'<td>{item:>0.3f}</td>\n')
+                                fid.write(f'<td>{int(item):>,}</td>\n')
+                            elif int(item) != float(item):
+                                fid.write(f'<td>{item:>,.3f}</td>\n')
+                            else:
+                                fid.write(f'<td>{item}</td>\n')
+                        else:
+                            fid.write(f'<td>{item}</td>\n')
+                    fid.write(f'</tr>\n')
+
+                fid.write('</tbody>\n')
+
+                # end table
+                fid.write('</table\n')
+                for ii in range(5+2*len(pd_ledger[pd_ledger['Symbol'] == position])):
+                    fid.write('<br>\n')
+                fid.write('<hr>\n')
+
+        #end html
+        for html_snippet in ['</body>', '</head>', '</html>']:
+            fid.write(html_snippet + '\n')
+        fid.close()
+
+    def word(self):
+        # str_timestamps = self.str_timestamps
+        # pd_ledger = self.pd_ledger
+        # df_aggragated_analyzed_data = self.df_aggragated_analyzed_data
+        # str_report_path = self.str_report_path
+        # str_report_folder = os.path.join(str_report_path, str_timestamps)
+        # os.makedirs(str_report_folder, exist_ok=True)
+        pass
+
+    def ppt(self):
+        pass
+
 
 if __name__ == '__main__':
     config_xml = r'./reporter_config.xml'
     str_timestamps = str(time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime()))
-    str_report_folder = fr'.\{str_timestamps}'
-
-    # os.makedirs(str_report_folder, exist_ok=True)
 
     parser = Parser(str_timestamps=str_timestamps,
                     config_xml=config_xml)
 
     pd_ledger = parser.start()
 
-    # pd_ledger = pd.read_csv(r'.\ledger.csv')
-    # dateZero = datetime.datetime(2020, 1, 1, 0, 0)
-    # dateNow = datetime.datetime.now()
-
     analyzer = Analysis(str_timestamps=str_timestamps,
                         config_xml=config_xml)
-    analyzer.analyzer1(pd_trades=pd_ledger)
+    df_aggragated_analyzed_data = analyzer.analyzer1(pd_trades=pd_ledger)
+    report = Report(pd_ledger,
+                    df_aggragated_analyzed_data,
+                    config_xml=config_xml,
+                    str_timestamps=str_timestamps
+                    )
+    report.start()
 
-    # df_analyzed_data = analyzer1(str_timestamps=str_timestamps,
-    #                              pd_trades=pd_ledger,
-    #                              datetime_start_date=dateZero,
-    #                              datetime_end_date=dateNow,
-    #                              str_report_folder=str_report_folder,
-    #                              b_plots=False)
+
+
+

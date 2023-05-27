@@ -3,7 +3,7 @@
     <metadata>
         <save_parsed_data_frame_to_csv>all</save_parsed_data_frame_to_csv>
         <use_preexisting_ledger>True</use_preexisting_ledger>
-        <preexisting_ledger_path>r'.\ledger.csv'</preexisting_ledger_path>
+        <preexisting_ledger_path>r'.\ledger_guy.csv'</preexisting_ledger_path>
         <output_report_location>r'.\report'</output_report_location>
     </metadata>
 
@@ -16,7 +16,7 @@
     <report>
         <plot_graphs>True</plot_graphs>
         <html>False</html>
-        <word>False</word>
+        <word>True</word>
         <ppt>False</ppt>
         <start_date>datetime.datetime(2020, 1, 1, 0, 0)</start_date>
         <end_date>datetime.datetime.now()</end_date>
